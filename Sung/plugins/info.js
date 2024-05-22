@@ -39,14 +39,25 @@ bot.command("info", async (ctx) => {
         const user = await getUser(ctx, ctx.message.reply_to_message ? ctx.message.reply_to_message.from.id : ctx.message.from.id);
         const userProfilePic = user.userProfilePic;
 
-        let caption = "";
+        let userDetails;
         if (ctx.message.reply_to_message) {
-            const repliedUser = ctx.message.reply_to_message.from;
-            caption = `Name: ${repliedUser.first_name}\nUser ID: <code>${repliedUser.id}</code>\nMention: <a href="tg://user?id=${repliedUser.id}">${repliedUser.first_name}</a>\nStatus: ${userStatus}.`;
+            userDetails = ctx.message.reply_to_message.from;
         } else {
-            const currentUser = ctx.message.from;
-            caption = `Name: ${currentUser.first_name}\nUser ID: <code>${currentUser.id}</code>\nMention: <a href="tg://user?id=${currentUser.id}">${currentUser.first_name}</a>\nStatus: ${userStatus}.`;
+            userDetails = ctx.message.from;
         }
+
+        const { first_name, last_name, username, id } = userDetails;
+        const fullName = `${first_name} ${last_name || ''}`.trim();
+        const mention = `<a href="tg://user?id=${id}">${first_name}</a>`;
+        const userName = username ? `@${username}` : 'Not set';
+
+        const caption = `
+Name: ${fullName}
+Username: ${userName}
+User ID: <code>${id}</code>
+Mention: ${mention}
+Status: ${userStatus}
+`;
 
         if (userProfilePic !== "") {
             await ctx.replyWithPhoto(userProfilePic, {
@@ -61,6 +72,17 @@ bot.command("info", async (ctx) => {
                 reply_to_message_id: ctx.message.message_id,
                 reply_markup: replyMarkup
             });
+        }
+    } catch (error) {
+        await LOGGER(error);
+    }
+});
+
+bot.on("callback_query", async (ctx) => {
+    try {
+        const callbackData = ctx.callbackQuery.data;
+        if (callbackData === "delete_me") {
+            await ctx.deleteMessage(ctx.callbackQuery.message.message_id);
         }
     } catch (error) {
         await LOGGER(error);
